@@ -36,13 +36,13 @@ class FeiraService(
                 comercianteRepository
                     .findById(comercianteId)
                     .orElseThrow { RuntimeException("Comerciante não encontrado") }
-            feiraComercianteRepository.save(
-                FeiraComercianteEntity(
-                    feira = feiraSalva,
-                    comerciante = comerciante,
-                    totalVendido = BigDecimal.ZERO,
-                ),
+            val feiraComerciante = FeiraComercianteEntity(
+                feira = feiraSalva,
+                comerciante = comerciante,
+                totalVendido = BigDecimal.ZERO,
             )
+            feiraComercianteRepository.save(feiraComerciante)
+            feiraSalva.comerciantes.add(feiraComerciante)
         }
 
         itemIds.forEach { itemId ->
