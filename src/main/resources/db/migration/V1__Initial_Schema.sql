@@ -77,15 +77,14 @@ CREATE TABLE usuario_perfil
 -- 3.2. Logística e Endereçamento
 CREATE TABLE zonas_entrega
 (
-    id            UUID PRIMARY KEY        DEFAULT gen_random_uuid(),
-    bairro        VARCHAR(255)   NOT NULL,
-    regiao        VARCHAR(255),
+    id            UUID PRIMARY KEY                 DEFAULT gen_random_uuid(),
+    nome          VARCHAR(100)   NOT NULL          DEFAULT 'ZONA_PADRAO',
     taxa          NUMERIC(10, 2) NOT NULL
-        CONSTRAINT chk_zona_taxa CHECK (taxa >= 0),
-    ativo         BOOLEAN                 DEFAULT TRUE,
-    versao        BIGINT                  DEFAULT 0,
-    criado_em     TIMESTAMP      NOT NULL DEFAULT NOW(),
-    atualizado_em TIMESTAMP      NOT NULL DEFAULT NOW(),
+        CONSTRAINT chk_zona_taxa CHECK (taxa >= 0) DEFAULT 7.00,
+    ativo         BOOLEAN                          DEFAULT TRUE,
+    versao        BIGINT                           DEFAULT 0,
+    criado_em     TIMESTAMP      NOT NULL          DEFAULT NOW(),
+    atualizado_em TIMESTAMP      NOT NULL          DEFAULT NOW(),
     deletado_em   TIMESTAMP
 );
 
@@ -95,6 +94,7 @@ CREATE TABLE enderecos
     rua             VARCHAR(255),
     numero          VARCHAR(20),
     complemento     VARCHAR(255),
+    bairro          VARCHAR(100),
     cidade          VARCHAR(255),
     estado          VARCHAR(2),
     cep             VARCHAR(10),

@@ -13,6 +13,17 @@ fun Usuario.toDTO() =
         perfis = perfis.map { it.nome }.toSet(),
     )
 
+fun Usuario.toDetalhadoDTO(endereco: Endereco? = null) =
+    UsuarioDetalhadoDTO(
+        id = id,
+        nome = nome,
+        email = email,
+        telefone = telefone,
+        descricao = descricao,
+        perfis = perfis.map { it.nome }.toSet(),
+        endereco = endereco?.toDTO(),
+    )
+
 fun Produto.toDTO() =
     ProdutoDTO(
         id = id,
@@ -68,8 +79,7 @@ fun Pagamento.toDTO() =
 fun ZonaEntrega.toDTO() =
     ZonaEntregaDTO(
         id = id,
-        bairro = bairro,
-        regiao = regiao,
+        nome = nome,
         taxa = taxa,
         ativo = ativo,
     )
@@ -80,10 +90,11 @@ fun Endereco.toDTO() =
         rua = rua,
         numero = numero,
         complemento = complemento,
+        bairro = bairro,
         cidade = cidade,
         estado = estado,
         cep = cep,
-        zonaEntrega = zonaEntrega!!.toDTO(),
+        zonaEntrega = zonaEntrega?.toDTO(),
     )
 
 fun Relatorio.toDTO() =

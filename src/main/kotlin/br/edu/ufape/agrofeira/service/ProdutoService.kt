@@ -18,7 +18,15 @@ import java.util.*
 class ProdutoService(
     private val repository: ProdutoRepository,
 ) {
-    fun listar(pageable: Pageable): Page<Produto> = repository.findAll(pageable)
+    fun listar(
+        nome: String? = null,
+        pageable: Pageable,
+    ): Page<Produto> =
+        if (nome.isNullOrBlank()) {
+            repository.findAll(pageable)
+        } else {
+            repository.findByNomeContainingIgnoreCase(nome, pageable)
+        }
 
     fun obterOpcoes(): ItensOpcoesDTO {
         val categorias = CategoriaProduto.entries.map { OpcaoDTO(it.name, it.descricao) }

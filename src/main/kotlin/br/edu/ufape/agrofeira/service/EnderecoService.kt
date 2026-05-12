@@ -16,12 +16,16 @@ class EnderecoService(
     private val repository: EnderecoRepository,
     private val usuarioRepository: UsuarioRepository,
     private val zonaEntregaRepository: ZonaEntregaRepository,
+    private val viaCepService: ViaCepService,
 ) {
     @Transactional(readOnly = true)
     fun buscarPorUsuarioId(usuarioId: UUID): Endereco =
         repository
             .findById(usuarioId)
             .orElseThrow { ResourceNotFoundException("Endereço", usuarioId.toString()) }
+
+    @Transactional(readOnly = true)
+    fun buscarPorUsuarioIdOuNulo(usuarioId: UUID): Endereco? = repository.findById(usuarioId).orElse(null)
 
     @Transactional
     fun salvarEndereco(
@@ -33,12 +37,30 @@ class EnderecoService(
                 .findById(usuarioId)
                 .orElseThrow { ResourceNotFoundException("Usuário", usuarioId.toString()) }
 
-        val zonaEntrega =
-            zonaEntregaRepository
-                .findById(request.zonaEntregaId)
-                .orElseThrow { ResourceNotFoundException("Zona de Entrega", request.zonaEntregaId.toString()) }
+        // 1. Validação ViaCep (Garanhuns-PE)
+        val dadosCep =
+            viaCepService.consultarCep(request.cep)
+                ?: throw IllegalArgumentException("CEP não encontrado ou inválido")
 
-        if (!zonaEntrega.ativo) {
+        if (dadosCep.localidade != "Garanhuns" || dadosCep.uf != "PE") {
+            throw IllegalArgumentException("No momento, atendemos apenas o município de Garanhuns-PE")
+        }
+
+        // 2. Validação de Zona de Entrega por Perfil
+        val eConsumidor = usuario.perfis.any { it.nome == "CONSUMIDOR" }
+
+        if (eConsumidor && request.zonaEntregaId == null) {
+            throw IllegalArgumentException("A Zona de Entrega é obrigatória para Clientes (Consumidores)")
+        }
+
+        val zonaEntrega =
+            request.zonaEntregaId?.let {
+                zonaEntregaRepository
+                    .findById(it)
+                    .orElseThrow { ResourceNotFoundException("Zona de Entrega", it.toString()) }
+            }
+
+        if (zonaEntrega != null && !zonaEntrega.ativo) {
             throw IllegalArgumentException("A Zona de Entrega selecionada está inativa")
         }
 
@@ -47,11 +69,13 @@ class EnderecoService(
                 Endereco(usuario = usuario)
             }
 
-        endereco.rua = request.rua
+        // Auto-preenchimento com dados do ViaCep se vazio no request
+        endereco.rua = request.rua ?: dadosCep.logradouro
+        endereco.bairro = dadosCep.bairro
         endereco.numero = request.numero
         endereco.complemento = request.complemento
-        endereco.cidade = request.cidade
-        endereco.estado = request.estado
+        endereco.cidade = "Garanhuns"
+        endereco.estado = "PE"
         endereco.cep = request.cep
         endereco.zonaEntrega = zonaEntrega
         endereco.atualizadoEm = LocalDateTime.now()

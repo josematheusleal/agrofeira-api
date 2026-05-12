@@ -43,12 +43,24 @@ class ProdutoServiceTest {
     }
 
     @Test
-    fun `listar deve retornar pagina de produtos`() {
+    fun `listar deve retornar pagina de produtos quando nome for nulo`() {
         val pageable = PageRequest.of(0, 10)
         val page = PageImpl(listOf(produto))
         `when`(repository.findAll(pageable)).thenReturn(page)
 
-        val result = service.listar(pageable)
+        val result = service.listar(null, pageable)
+
+        assertEquals(1, result.totalElements)
+        assertEquals("Tomate", result.content[0].nome)
+    }
+
+    @Test
+    fun `listar deve retornar pagina de produtos filtrada por nome`() {
+        val pageable = PageRequest.of(0, 10)
+        val page = PageImpl(listOf(produto))
+        `when`(repository.findByNomeContainingIgnoreCase("Tomate", pageable)).thenReturn(page)
+
+        val result = service.listar("Tomate", pageable)
 
         assertEquals(1, result.totalElements)
         assertEquals("Tomate", result.content[0].nome)
@@ -88,7 +100,8 @@ class ProdutoServiceTest {
 
     @Test
     fun `atualizar deve salvar alteracoes no produto existente`() {
-        val request = ProdutoRequest("Tomate Especial", CategoriaProduto.HORTIFRUTI, UnidadeMedida.QUILO, BigDecimal("8.00"))
+        val request =
+            ProdutoRequest("Tomate Especial", CategoriaProduto.HORTIFRUTI, UnidadeMedida.QUILO, BigDecimal("8.00"))
         `when`(repository.findById(id)).thenReturn(Optional.of(produto))
         `when`(repository.save(any(Produto::class.java))).thenAnswer { it.arguments[0] }
 

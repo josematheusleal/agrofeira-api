@@ -28,6 +28,9 @@ class ClienteServiceTest {
     @Mock
     private lateinit var usuarioService: UsuarioService
 
+    @Mock
+    private lateinit var enderecoService: EnderecoService
+
     @InjectMocks
     private lateinit var clienteService: ClienteService
 
@@ -49,17 +52,37 @@ class ClienteServiceTest {
     }
 
     @Test
-    fun `listar deve retornar uma pagina de clientes`() {
+    fun `listar deve retornar uma pagina de clientes quando nome for nulo`() {
         val pageable = PageRequest.of(0, 10)
         val page = PageImpl(listOf(cliente))
 
         `when`(usuarioRepository.findByPerfilNome("CONSUMIDOR", pageable)).thenReturn(page)
 
-        val result = clienteService.listar(pageable)
+        val result = clienteService.listar(null, pageable)
 
         assertEquals(1, result.totalElements)
         assertEquals("Maria", result.content[0].nome)
         verify(usuarioRepository).findByPerfilNome("CONSUMIDOR", pageable)
+    }
+
+    @Test
+    fun `listar deve retornar uma pagina de clientes filtrada por nome`() {
+        val pageable = PageRequest.of(0, 10)
+        val page = PageImpl(listOf(cliente))
+
+        `when`(
+            usuarioRepository.findByPerfilNomeAndNomeContainingIgnoreCase(
+                "CONSUMIDOR",
+                "Maria",
+                pageable,
+            ),
+        ).thenReturn(page)
+
+        val result = clienteService.listar("Maria", pageable)
+
+        assertEquals(1, result.totalElements)
+        assertEquals("Maria", result.content[0].nome)
+        verify(usuarioRepository).findByPerfilNomeAndNomeContainingIgnoreCase("CONSUMIDOR", "Maria", pageable)
     }
 
     @Test
@@ -95,14 +118,35 @@ class ClienteServiceTest {
     }
 
     @Test
-    fun `criar deve chamar o usuarioService cadastrar repassando CONSUMIDOR`() {
-        val request = ClienteRequest("João", "joao@email.com", "8799999999", "senha123", "desc")
+    fun `criar deve chamar o usuarioService cadastrar e salvar endereco se fornecido`() {
+        val enderecoRequest =
+            br.edu.ufape.agrofeira.dto.request.EnderecoRequest(
+                rua = "Rua",
+                numero = "1",
+                complemento = "Comp",
+                cep = "55290000",
+                zonaEntregaId = UUID.randomUUID(),
+            )
+        val request = ClienteRequest("João", "joao@email.com", "8799999999", "senha123", "desc", enderecoRequest)
         `when`(usuarioService.cadastrar(anyUsuario(), eqSet(setOf("CONSUMIDOR")))).thenReturn(cliente)
 
         val result = clienteService.criar(request)
 
         assertNotNull(result)
         verify(usuarioService).cadastrar(anyUsuario(), eqSet(setOf("CONSUMIDOR")))
+        verify(enderecoService).salvarEndereco(cliente.id, enderecoRequest)
+    }
+
+    @Test
+    fun `criar deve chamar apenas usuarioService cadastrar se endereco for nulo`() {
+        val request = ClienteRequest("João", "joao@email.com", "8799999999", "senha123", "desc", null)
+        `when`(usuarioService.cadastrar(anyUsuario(), eqSet(setOf("CONSUMIDOR")))).thenReturn(cliente)
+
+        val result = clienteService.criar(request)
+
+        assertNotNull(result)
+        verify(usuarioService).cadastrar(anyUsuario(), eqSet(setOf("CONSUMIDOR")))
+        verifyNoInteractions(enderecoService)
     }
 
     @Test

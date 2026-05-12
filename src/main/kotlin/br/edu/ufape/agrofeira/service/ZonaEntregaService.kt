@@ -24,8 +24,7 @@ class ZonaEntregaService(
     fun criar(request: ZonaEntregaRequest): ZonaEntrega {
         val zona =
             ZonaEntrega(
-                bairro = request.bairro,
-                regiao = request.regiao,
+                nome = request.nome,
                 taxa = request.taxa,
             )
         return repository.save(zona)
@@ -39,8 +38,7 @@ class ZonaEntregaService(
         val zona = buscarPorId(id)
         val zonaAtualizada =
             zona.copy(
-                bairro = request.bairro,
-                regiao = request.regiao,
+                nome = request.nome,
                 taxa = request.taxa,
                 atualizadoEm = LocalDateTime.now(),
             )

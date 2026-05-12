@@ -61,6 +61,9 @@ class ComercianteControllerIntegrationTest {
     @Autowired
     lateinit var jwtService: JwtService
 
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    lateinit var viaCepService: br.edu.ufape.agrofeira.service.ViaCepService
+
     @Autowired
     lateinit var jdbcTemplate: JdbcTemplate
 
@@ -71,6 +74,15 @@ class ComercianteControllerIntegrationTest {
 
     @BeforeEach
     fun setup() {
+        org.mockito.Mockito.`when`(viaCepService.consultarCep(org.mockito.ArgumentMatchers.anyString())).thenReturn(
+            br.edu.ufape.agrofeira.service.ViaCepResponse(
+                cep = "55290000",
+                bairro = "Heliópolis",
+                localidade = "Garanhuns",
+                uf = "PE",
+            ),
+        )
+
         jdbcTemplate.execute("TRUNCATE TABLE usuario_perfil, usuarios, perfis CASCADE")
 
         val pAdmin = perfilRepository.save(Perfil(nome = "ADMINISTRADOR"))
@@ -124,6 +136,18 @@ class ComercianteControllerIntegrationTest {
     }
 
     @Test
+    fun `listar comerciantes com filtro por nome deve retornar apenas os correspondentes`() {
+        mockMvc
+            .perform(
+                get("/api/v1/comerciantes")
+                    .param("nome", "Maria")
+                    .header("Authorization", "Bearer $adminToken"),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.content[0].nome").value("Banca da Maria"))
+            .andExpect(jsonPath("$.data.totalElements").value(1))
+    }
+
+    @Test
     fun `buscarPorId deve retornar 200 se comerciante busca a si mesmo`() {
         mockMvc
             .perform(
@@ -132,6 +156,7 @@ class ComercianteControllerIntegrationTest {
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.data.nome").value("Banca do João"))
             .andExpect(jsonPath("$.data.descricao").value("Frutas frescas da região"))
+            .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.hasKey("endereco")))
     }
 
     @Test
@@ -162,6 +187,7 @@ class ComercianteControllerIntegrationTest {
             ).andExpect(status().isCreated)
             .andExpect(jsonPath("$.data.nome").value("Banca Nova"))
             .andExpect(jsonPath("$.data.descricao").value("Nova banca de legumes"))
+            .andExpect(jsonPath("$.data.endereco").isEmpty)
     }
 
     @Test
@@ -232,6 +258,44 @@ class ComercianteControllerIntegrationTest {
             ).andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.success").value(false))
             .andExpect(jsonPath("$.message").value("Erro de validação nos campos"))
+    }
+
+    @Test
+    fun `criar comerciante com endereco deve salvar ambos atomicamente`() {
+        val zonaId =
+            jdbcTemplate.queryForObject(
+                "INSERT INTO zonas_entrega (nome, taxa, ativo) VALUES ('ZONA_COMERCIANTE', 10.00, true) RETURNING id",
+                UUID::class.java,
+            )
+
+        val enderecoReq =
+            br.edu.ufape.agrofeira.dto.request.EnderecoRequest(
+                rua = "Rua do Comércio",
+                numero = "500",
+                complemento = null,
+                cidade = "Garanhuns",
+                estado = "PE",
+                cep = "55290000",
+                zonaEntregaId = zonaId!!,
+            )
+
+        val request =
+            ComercianteRequest(
+                nome = "Comerciante Atômico",
+                email = "atomico.com@email.com",
+                senha = "senha123",
+                endereco = enderecoReq,
+            )
+
+        mockMvc
+            .perform(
+                post("/api/v1/comerciantes")
+                    .header("Authorization", "Bearer $adminToken")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)),
+            ).andExpect(status().isCreated)
+            .andExpect(jsonPath("$.data.nome").value("Comerciante Atômico"))
+            .andExpect(jsonPath("$.data.endereco.rua").value("Rua do Comércio"))
     }
 
     @Test

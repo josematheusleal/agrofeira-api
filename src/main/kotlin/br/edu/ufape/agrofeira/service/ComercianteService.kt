@@ -16,8 +16,17 @@ import java.util.UUID
 class ComercianteService(
     private val usuarioService: UsuarioService,
     private val usuarioRepository: UsuarioRepository,
+    private val enderecoService: EnderecoService,
 ) {
-    fun listar(pageable: Pageable): Page<Usuario> = usuarioRepository.findByPerfilNome("COMERCIANTE", pageable)
+    fun listar(
+        nome: String? = null,
+        pageable: Pageable,
+    ): Page<Usuario> =
+        if (nome.isNullOrBlank()) {
+            usuarioRepository.findByPerfilNome("COMERCIANTE", pageable)
+        } else {
+            usuarioRepository.findByPerfilNomeAndNomeContainingIgnoreCase("COMERCIANTE", nome, pageable)
+        }
 
     fun buscarPorId(id: UUID): Usuario {
         val usuario =
@@ -40,7 +49,13 @@ class ComercianteService(
                 senhaHash = request.senha,
                 descricao = request.descricao,
             )
-        return usuarioService.cadastrar(novoUsuario, setOf("COMERCIANTE"))
+        val usuarioSalvo = usuarioService.cadastrar(novoUsuario, setOf("COMERCIANTE"))
+
+        if (request.endereco != null) {
+            enderecoService.salvarEndereco(usuarioSalvo.id, request.endereco)
+        }
+
+        return usuarioSalvo
     }
 
     @Transactional

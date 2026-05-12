@@ -8,6 +8,7 @@ import br.edu.ufape.agrofeira.dto.response.ProdutoDTO
 import br.edu.ufape.agrofeira.security.annotations.IsManagerOrAdmin
 import br.edu.ufape.agrofeira.service.ProdutoService
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import org.springframework.data.domain.Page
@@ -27,9 +28,11 @@ class ProdutoController(
     @GetMapping
     @Operation(summary = "Listar todos os produtos", description = "Retorna uma lista paginada de produtos ativos")
     fun listar(
+        @Parameter(description = "Filtro opcional por nome")
+        @RequestParam(required = false) nome: String?,
         @PageableDefault(size = 10, page = 0) pageable: Pageable,
     ): ResponseEntity<ApiResponse<Page<ProdutoDTO>>> {
-        val produtos = service.listar(pageable).map { it.toDTO() }
+        val produtos = service.listar(nome, pageable).map { it.toDTO() }
         return ResponseEntity.ok(
             ApiResponse(
                 success = true,
@@ -40,7 +43,10 @@ class ProdutoController(
     }
 
     @GetMapping("/opcoes")
-    @Operation(summary = "Obter opções de categorias e unidades de medida", description = "Retorna as opções para popular selects no frontend")
+    @Operation(
+        summary = "Obter opções de categorias e unidades de medida",
+        description = "Retorna as opções para popular selects no frontend",
+    )
     fun obterOpcoes(): ResponseEntity<ApiResponse<ItensOpcoesDTO>> {
         val opcoes = service.obterOpcoes()
         return ResponseEntity.ok(

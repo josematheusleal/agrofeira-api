@@ -25,19 +25,19 @@ VALUES ('aaaa1111-0000-0000-0000-000000000001', 1),
        ('cccc3333-0000-0000-0000-000000000002', 4);
 
 -- ==============================================================================
--- 5.2. LOGÍSTICA (Zonas e Endereços)
+-- 5.2. LOGÍSTICA (Zonas e Endereços de Garanhuns)
 -- ==============================================================================
 
-INSERT INTO zonas_entrega (id, bairro, regiao, taxa)
-VALUES ('dddd4444-0000-0000-0000-000000000001', 'Centro', 'Zona Sul', 5.00),
-       ('dddd4444-0000-0000-0000-000000000002', 'Heliópolis', 'Zona Norte', 7.00);
+INSERT INTO zonas_entrega (id, nome, taxa)
+VALUES ('dddd4444-0000-0000-0000-000000000007', 'ZONA_PROXIMA', 7.00),
+       ('dddd4444-0000-0000-0000-000000000010', 'ZONA_AFASTADA', 10.00);
 
 -- Endereços (PK é o próprio usuario_id)
-INSERT INTO enderecos (usuario_id, zona_entrega_id, rua, numero, cidade, estado, cep)
-VALUES ('cccc3333-0000-0000-0000-000000000001', 'dddd4444-0000-0000-0000-000000000001', 'Rua das Flores', '123',
-        'Garanhuns', 'PE', '55290000'),
-       ('cccc3333-0000-0000-0000-000000000002', 'dddd4444-0000-0000-0000-000000000002', 'Av. Rui Barbosa', '456',
-        'Garanhuns', 'PE', '55291000');
+INSERT INTO enderecos (usuario_id, zona_entrega_id, rua, numero, bairro, cidade, estado, cep)
+VALUES ('cccc3333-0000-0000-0000-000000000001', 'dddd4444-0000-0000-0000-000000000007', 'Rua das Flores', '123',
+        'Centro', 'Garanhuns', 'PE', '55290000'),
+       ('cccc3333-0000-0000-0000-000000000002', 'dddd4444-0000-0000-0000-000000000010', 'Av. Rui Barbosa', '456',
+        'Heliópolis', 'Garanhuns', 'PE', '55291000');
 
 -- ==============================================================================
 -- 5.3. CATÁLOGO BASE DE PRODUTOS

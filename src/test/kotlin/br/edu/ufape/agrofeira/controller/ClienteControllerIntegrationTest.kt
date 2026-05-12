@@ -60,6 +60,9 @@ class ClienteControllerIntegrationTest {
     @Autowired
     lateinit var jwtService: JwtService
 
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    lateinit var viaCepService: br.edu.ufape.agrofeira.service.ViaCepService
+
     @Autowired
     lateinit var jdbcTemplate: org.springframework.jdbc.core.JdbcTemplate
 
@@ -72,6 +75,15 @@ class ClienteControllerIntegrationTest {
 
     @BeforeEach
     fun setup() {
+        org.mockito.Mockito.`when`(viaCepService.consultarCep(org.mockito.ArgumentMatchers.anyString())).thenReturn(
+            br.edu.ufape.agrofeira.service.ViaCepResponse(
+                cep = "55290000",
+                bairro = "Bairro Atômico",
+                localidade = "Garanhuns",
+                uf = "PE",
+            ),
+        )
+
         jdbcTemplate.execute("TRUNCATE TABLE usuario_perfil, usuarios, perfis CASCADE")
 
         val perfilAdmin = perfilRepository.save(Perfil(nome = "ADMINISTRADOR"))
@@ -130,6 +142,18 @@ class ClienteControllerIntegrationTest {
     }
 
     @Test
+    fun `listar clientes com filtro por nome deve retornar apenas os correspondentes`() {
+        mockMvc
+            .perform(
+                get("/api/v1/clientes")
+                    .param("nome", "João")
+                    .header("Authorization", "Bearer $adminToken"),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.content[0].nome").value("João Consumidor"))
+            .andExpect(jsonPath("$.data.totalElements").value(1))
+    }
+
+    @Test
     fun `listar clientes deve retornar 403 Forbidden para CONSUMIDOR`() {
         mockMvc
             .perform(
@@ -149,6 +173,7 @@ class ClienteControllerIntegrationTest {
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.email").value("joao@email.com"))
             .andExpect(jsonPath("$.data.descricao").value("Cliente assíduo"))
+            .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.hasKey("endereco")))
     }
 
     @Test
@@ -234,6 +259,7 @@ class ClienteControllerIntegrationTest {
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.nome").value("Novo Cliente da Feira"))
             .andExpect(jsonPath("$.data.descricao").value("Descrição do novo cliente"))
+            .andExpect(jsonPath("$.data.endereco").isEmpty)
     }
 
     @Test
@@ -326,5 +352,43 @@ class ClienteControllerIntegrationTest {
             ).andExpect(status().isBadRequest)
             .andExpect(jsonPath("$.success").value(false))
             .andExpect(jsonPath("$.message").value("Telefone já cadastrado"))
+    }
+
+    @Test
+    fun `criar cliente com endereco deve salvar ambos atomicamente`() {
+        val zonaId =
+            jdbcTemplate.queryForObject(
+                "INSERT INTO zonas_entrega (nome, taxa, ativo) VALUES ('ZONA_TESTE', 7.00, true) RETURNING id",
+                UUID::class.java,
+            )
+
+        val enderecoReq =
+            br.edu.ufape.agrofeira.dto.request.EnderecoRequest(
+                rua = "Rua Atômica",
+                numero = "100",
+                complemento = null,
+                cidade = "Garanhuns",
+                estado = "PE",
+                cep = "55290000",
+                zonaEntregaId = zonaId!!,
+            )
+
+        val request =
+            ClienteRequest(
+                nome = "Cliente Atômico",
+                email = "atomico@email.com",
+                senha = "senha123",
+                endereco = enderecoReq,
+            )
+
+        mockMvc
+            .perform(
+                post("/api/v1/clientes")
+                    .header("Authorization", "Bearer $adminToken")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)),
+            ).andExpect(status().isCreated)
+            .andExpect(jsonPath("$.data.nome").value("Cliente Atômico"))
+            .andExpect(jsonPath("$.data.endereco.rua").value("Rua Atômica"))
     }
 }

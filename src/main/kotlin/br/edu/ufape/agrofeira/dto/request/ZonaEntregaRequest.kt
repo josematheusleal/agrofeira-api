@@ -8,13 +8,11 @@ import java.math.BigDecimal
 
 @Schema(description = "Dados para cadastro/atualização de zona de entrega")
 data class ZonaEntregaRequest(
-    @field:NotBlank(message = "O bairro é obrigatório")
-    @Schema(description = "Nome do bairro", example = "Cohab I")
-    val bairro: String,
-    @Schema(description = "Região da cidade", example = "Zona Norte")
-    val regiao: String? = null,
+    @field:NotBlank(message = "O nome da zona é obrigatório")
+    @Schema(description = "Nome identificador da zona", example = "ZONA_PROXIMA")
+    val nome: String,
     @field:NotNull(message = "A taxa é obrigatória")
     @field:PositiveOrZero(message = "A taxa não pode ser negativa")
-    @Schema(description = "Taxa de entrega para esta zona", example = "5.00")
+    @Schema(description = "Taxa de entrega para esta zona", example = "7.00")
     val taxa: BigDecimal,
 )

@@ -98,7 +98,7 @@ class ZonaEntregaControllerIntegrationTest {
 
         val zona =
             zonaEntregaRepository.save(
-                ZonaEntrega(bairro = "Centro", taxa = BigDecimal("5.00")),
+                ZonaEntrega(nome = "ZONA_PROXIMA", taxa = BigDecimal("7.00")),
             )
         zonaId = zona.id
     }
@@ -117,12 +117,12 @@ class ZonaEntregaControllerIntegrationTest {
         mockMvc
             .perform(get("/api/v1/zonas-entrega/$zonaId"))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.data.bairro").value("Centro"))
+            .andExpect(jsonPath("$.data.nome").value("ZONA_PROXIMA"))
     }
 
     @Test
     fun `criar zona deve retornar 201 para Admin`() {
-        val request = ZonaEntregaRequest("Cohab", "Norte", BigDecimal("8.00"))
+        val request = ZonaEntregaRequest("ZONA_NOVA", BigDecimal("8.00"))
 
         mockMvc
             .perform(
@@ -131,12 +131,12 @@ class ZonaEntregaControllerIntegrationTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)),
             ).andExpect(status().isCreated)
-            .andExpect(jsonPath("$.data.bairro").value("Cohab"))
+            .andExpect(jsonPath("$.data.nome").value("ZONA_NOVA"))
     }
 
     @Test
     fun `criar zona deve retornar 403 para Consumidor`() {
-        val request = ZonaEntregaRequest("X", "Y", BigDecimal.ZERO)
+        val request = ZonaEntregaRequest("PROIBIDA", BigDecimal.ZERO)
 
         mockMvc
             .perform(
@@ -149,7 +149,7 @@ class ZonaEntregaControllerIntegrationTest {
 
     @Test
     fun `atualizar zona deve retornar 200 para Admin`() {
-        val request = ZonaEntregaRequest("Centro Novo", "Sul", BigDecimal("12.00"))
+        val request = ZonaEntregaRequest("ZONA_ALTERADA", BigDecimal("12.00"))
 
         mockMvc
             .perform(
@@ -158,7 +158,7 @@ class ZonaEntregaControllerIntegrationTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)),
             ).andExpect(status().isOk)
-            .andExpect(jsonPath("$.data.bairro").value("Centro Novo"))
+            .andExpect(jsonPath("$.data.nome").value("ZONA_ALTERADA"))
             .andExpect(jsonPath("$.data.taxa").value(12.00))
     }
 

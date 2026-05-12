@@ -17,11 +17,12 @@ class Endereco(
     var rua: String? = null,
     var numero: String? = null,
     var complemento: String? = null,
+    var bairro: String? = null,
     var cidade: String? = null,
     var estado: String? = null,
     var cep: String? = null,
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "zona_entrega_id", nullable = false)
+    @JoinColumn(name = "zona_entrega_id", nullable = true)
     var zonaEntrega: ZonaEntrega? = null,
     @Column(name = "criado_em", nullable = false, updatable = false)
     val criadoEm: LocalDateTime = LocalDateTime.now(),

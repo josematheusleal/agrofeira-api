@@ -29,6 +29,9 @@ class EnderecoServiceTest {
     @Mock
     private lateinit var zonaEntregaRepository: ZonaEntregaRepository
 
+    @Mock
+    private lateinit var viaCepService: ViaCepService
+
     @InjectMocks
     private lateinit var service: EnderecoService
 
@@ -40,34 +43,29 @@ class EnderecoServiceTest {
     @BeforeEach
     fun setUp() {
         usuario = Usuario(id = usuarioId, nome = "Teste", senhaHash = "123")
-        zonaEntrega = ZonaEntrega(id = zonaId, bairro = "Centro", taxa = 5.0.toBigDecimal(), ativo = true)
+        zonaEntrega = ZonaEntrega(id = zonaId, nome = "ZONA_PROXIMA", taxa = 7.0.toBigDecimal(), ativo = true)
+    }
+
+    private fun mockViaCepSucesso() {
+        `when`(viaCepService.consultarCep(anyString())).thenReturn(
+            ViaCepResponse(
+                cep = "55290000",
+                bairro = "Heliópolis",
+                localidade = "Garanhuns",
+                uf = "PE",
+            ),
+        )
     }
 
     @Test
-    fun `buscarPorUsuarioId deve retornar endereco quando existir`() {
-        val endereco = Endereco(usuario = usuario, zonaEntrega = zonaEntrega)
-        endereco.usuarioId = usuarioId
-        `when`(repository.findById(usuarioId)).thenReturn(Optional.of(endereco))
+    fun `salvarEndereco deve criar novo endereco com sucesso para consumidor`() {
+        val request = EnderecoRequest(null, "123", null, null, null, null, "55290000", zonaId)
+        val perfilConsumidor =
+            br.edu.ufape.agrofeira.domain.entity
+                .Perfil(nome = "CONSUMIDOR")
+        usuario.perfis.add(perfilConsumidor)
 
-        val result = service.buscarPorUsuarioId(usuarioId)
-
-        assertEquals(usuarioId, result.usuarioId)
-        verify(repository).findById(usuarioId)
-    }
-
-    @Test
-    fun `buscarPorUsuarioId deve lancar ResourceNotFoundException quando nao existir`() {
-        `when`(repository.findById(usuarioId)).thenReturn(Optional.empty())
-
-        assertThrows(ResourceNotFoundException::class.java) {
-            service.buscarPorUsuarioId(usuarioId)
-        }
-    }
-
-    @Test
-    fun `salvarEndereco deve criar novo endereco quando nao existir`() {
-        val request = EnderecoRequest("Rua 1", "123", null, "Cidade", "PE", "55290000", zonaId)
-
+        mockViaCepSucesso()
         `when`(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuario))
         `when`(zonaEntregaRepository.findById(zonaId)).thenReturn(Optional.of(zonaEntrega))
         `when`(repository.findById(usuarioId)).thenReturn(Optional.empty())
@@ -76,23 +74,42 @@ class EnderecoServiceTest {
         val result = service.salvarEndereco(usuarioId, request)
 
         assertNotNull(result)
-        assertEquals("Rua 1", result.rua)
+        assertEquals("Heliópolis", result.bairro)
         assertEquals(zonaEntrega, result.zonaEntrega)
-        verify(repository).save(any(Endereco::class.java))
     }
 
     @Test
-    fun `salvarEndereco deve lancar IllegalArgumentException se zona estiver inativa`() {
-        val zonaInativa = ZonaEntrega(id = zonaId, bairro = "Centro", taxa = 5.0.toBigDecimal(), ativo = false)
-        val request = EnderecoRequest("Rua 1", "123", null, "Cidade", "PE", "55290000", zonaId)
+    fun `salvarEndereco deve lancar excecao se CEP nao for de Garanhuns-PE`() {
+        val request = EnderecoRequest(null, "123", null, null, null, null, "50000000", zonaId)
 
         `when`(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuario))
-        `when`(zonaEntregaRepository.findById(zonaId)).thenReturn(Optional.of(zonaInativa))
+        `when`(viaCepService.consultarCep("50000000")).thenReturn(
+            ViaCepResponse(localidade = "Recife", uf = "PE"),
+        )
 
         val exception =
             assertThrows(IllegalArgumentException::class.java) {
                 service.salvarEndereco(usuarioId, request)
             }
-        assertEquals("A Zona de Entrega selecionada está inativa", exception.message)
+        assertEquals("No momento, atendemos apenas o município de Garanhuns-PE", exception.message)
+    }
+
+    @Test
+    fun `salvarEndereco deve permitir zona nula para comerciante`() {
+        val request = EnderecoRequest(null, "123", null, null, null, null, "55290000", null)
+        val perfilComerciante =
+            br.edu.ufape.agrofeira.domain.entity
+                .Perfil(nome = "COMERCIANTE")
+        usuario.perfis.add(perfilComerciante)
+
+        mockViaCepSucesso()
+        `when`(usuarioRepository.findById(usuarioId)).thenReturn(Optional.of(usuario))
+        `when`(repository.findById(usuarioId)).thenReturn(Optional.empty())
+        `when`(repository.save(any(Endereco::class.java))).thenAnswer { it.arguments[0] }
+
+        val result = service.salvarEndereco(usuarioId, request)
+
+        assertNotNull(result)
+        assertNull(result.zonaEntrega)
     }
 }

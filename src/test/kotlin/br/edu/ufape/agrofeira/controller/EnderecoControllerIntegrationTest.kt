@@ -68,6 +68,9 @@ class EnderecoControllerIntegrationTest {
     @Autowired
     lateinit var jwtService: JwtService
 
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    lateinit var viaCepService: br.edu.ufape.agrofeira.service.ViaCepService
+
     @Autowired
     lateinit var jdbcTemplate: org.springframework.jdbc.core.JdbcTemplate
 
@@ -78,6 +81,15 @@ class EnderecoControllerIntegrationTest {
 
     @BeforeEach
     fun setup() {
+        org.mockito.Mockito.`when`(viaCepService.consultarCep(org.mockito.ArgumentMatchers.anyString())).thenReturn(
+            br.edu.ufape.agrofeira.service.ViaCepResponse(
+                cep = "55290000",
+                bairro = "Heliópolis",
+                localidade = "Garanhuns",
+                uf = "PE",
+            ),
+        )
+
         jdbcTemplate.execute("TRUNCATE TABLE enderecos, usuario_perfil, usuarios, perfis, zonas_entrega CASCADE")
 
         val perfilAdmin = perfilRepository.save(Perfil(nome = "ADMINISTRADOR"))
@@ -108,14 +120,21 @@ class EnderecoControllerIntegrationTest {
 
         val zona =
             zonaEntregaRepository.save(
-                ZonaEntrega(bairro = "Centro", taxa = 5.0.toBigDecimal(), ativo = true),
+                ZonaEntrega(nome = "ZONA_PROXIMA", taxa = 7.0.toBigDecimal(), ativo = true),
             )
         zonaId = zona.id
     }
 
     @Test
     fun `salvarMeuEndereco deve criar endereco com sucesso`() {
-        val request = EnderecoRequest("Rua das Flores", "123", "Apto 1", "Garanhuns", "PE", "55290000", zonaId)
+        val request =
+            EnderecoRequest(
+                rua = "Rua das Flores",
+                numero = "123",
+                complemento = "Apto 1",
+                cep = "55290000",
+                zonaEntregaId = zonaId,
+            )
 
         mockMvc
             .perform(
@@ -126,7 +145,7 @@ class EnderecoControllerIntegrationTest {
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.rua").value("Rua das Flores"))
-            .andExpect(jsonPath("$.data.zonaEntrega.bairro").value("Centro"))
+            .andExpect(jsonPath("$.data.zonaEntrega.nome").value("ZONA_PROXIMA"))
     }
 
     @Test
@@ -141,7 +160,13 @@ class EnderecoControllerIntegrationTest {
 
     @Test
     fun `fluxo completo de endereco para consumidor`() {
-        val request = EnderecoRequest("Rua Nova", "456", null, "Garanhuns", "PE", "55290111", zonaId)
+        val request =
+            EnderecoRequest(
+                rua = "Rua Nova",
+                numero = "456",
+                cep = "55290000",
+                zonaEntregaId = zonaId,
+            )
 
         // 1. Salva
         mockMvc
@@ -159,7 +184,7 @@ class EnderecoControllerIntegrationTest {
                     .header("Authorization", "Bearer $consumidorToken"),
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.data.rua").value("Rua Nova"))
-            .andExpect(jsonPath("$.data.cep").value("55290111"))
+            .andExpect(jsonPath("$.data.cep").value("55290000"))
 
         // 3. Deleta
         mockMvc
@@ -178,7 +203,13 @@ class EnderecoControllerIntegrationTest {
 
     @Test
     fun `admin deve conseguir gerenciar endereco de terceiros`() {
-        val request = EnderecoRequest("Rua do Admin", "0", null, "Garanhuns", "PE", "55290000", zonaId)
+        val request =
+            EnderecoRequest(
+                rua = "Rua do Admin",
+                numero = "0",
+                cep = "55290000",
+                zonaEntregaId = zonaId,
+            )
 
         // Admin salva para o consumidor
         mockMvc

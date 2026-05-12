@@ -26,6 +26,13 @@ interface UsuarioRepository : JpaRepository<Usuario, UUID> {
         pageable: Pageable,
     ): Page<Usuario>
 
+    @Query("SELECT u FROM Usuario u JOIN u.perfis p WHERE p.nome = :nomePerfil AND LOWER(u.nome) LIKE LOWER(CONCAT('%', :nome, '%'))")
+    fun findByPerfilNomeAndNomeContainingIgnoreCase(
+        nomePerfil: String,
+        nome: String,
+        pageable: Pageable,
+    ): Page<Usuario>
+
     @Modifying
     @Transactional
     @Query("UPDATE Usuario u SET u.deletadoEm = CURRENT_TIMESTAMP, u.ativo = false WHERE u.id = :id")

@@ -1,6 +1,7 @@
 package br.edu.ufape.agrofeira.dto.request
 
 import io.swagger.v3.oas.annotations.media.Schema
+import jakarta.validation.Valid
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
@@ -21,6 +22,9 @@ data class ComercianteRequest(
     val senha: String,
     @Schema(description = "Descrição da banca ou especialidade", example = "Produtos orgânicos e frescos")
     val descricao: String? = null,
+    @field:Valid
+    @Schema(description = "Dados do endereço (opcional na criação)")
+    val endereco: EnderecoRequest? = null,
 )
 
 @Schema(description = "Dados para atualização de um Comerciante")

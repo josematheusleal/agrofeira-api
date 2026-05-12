@@ -16,6 +16,19 @@ data class UsuarioDTO(
     val perfis: Set<String>,
 )
 
+@Schema(description = "Dados detalhados do usuário (incluindo endereço)")
+data class UsuarioDetalhadoDTO(
+    val id: UUID,
+    val nome: String,
+    val email: String?,
+    val telefone: String?,
+    @Schema(description = "Descrição ou biografia do usuário/comerciante")
+    val descricao: String?,
+    val perfis: Set<String>,
+    @Schema(description = "Dados do endereço do usuário")
+    val endereco: EnderecoDTO?,
+)
+
 @Schema(description = "Dados detalhados do produto")
 data class ProdutoDTO(
     val id: UUID,
@@ -71,8 +84,7 @@ data class PagamentoDTO(
 @Schema(description = "Dados da zona de entrega")
 data class ZonaEntregaDTO(
     val id: UUID,
-    val bairro: String,
-    val regiao: String?,
+    val nome: String,
     val taxa: BigDecimal,
     val ativo: Boolean,
 )

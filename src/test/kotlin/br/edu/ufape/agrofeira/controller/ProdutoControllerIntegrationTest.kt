@@ -127,6 +127,18 @@ class ProdutoControllerIntegrationTest {
     }
 
     @Test
+    fun `listar produtos com filtro por nome deve retornar apenas os correspondentes`() {
+        mockMvc
+            .perform(
+                get("/api/v1/itens")
+                    .param("nome", "Cenou")
+                    .header("Authorization", "Bearer $consumidorToken"),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.content[0].nome").value("Cenoura"))
+            .andExpect(jsonPath("$.data.totalElements").value(1))
+    }
+
+    @Test
     fun `buscar por id deve retornar 200 se existir`() {
         mockMvc
             .perform(
@@ -246,14 +258,15 @@ class ProdutoControllerIntegrationTest {
 
     @Test
     fun `criar produto com unidade de medida invalida deve retornar 400`() {
-        val body = """
+        val body =
+            """
             {
                 "nome": "Produto X",
                 "categoria": "HORTIFRUTI",
                 "unidadeMedida": "INVALIDA",
                 "precoBase": 10.00
             }
-        """.trimIndent()
+            """.trimIndent()
 
         mockMvc
             .perform(
@@ -266,13 +279,14 @@ class ProdutoControllerIntegrationTest {
 
     @Test
     fun `criar produto com categoria nula deve retornar 400`() {
-        val body = """
+        val body =
+            """
             {
                 "nome": "Produto X",
                 "unidadeMedida": "QUILO",
                 "precoBase": 10.00
             }
-        """.trimIndent()
+            """.trimIndent()
 
         mockMvc
             .perform(

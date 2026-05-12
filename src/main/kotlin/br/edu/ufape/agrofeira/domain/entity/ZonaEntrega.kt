@@ -17,8 +17,7 @@ data class ZonaEntrega(
     @Version
     val versao: Long = 0,
     @Column(nullable = false)
-    val bairro: String = "",
-    val regiao: String? = null,
+    val nome: String = "",
     @Column(nullable = false)
     val taxa: BigDecimal = BigDecimal.ZERO,
     val ativo: Boolean = true,

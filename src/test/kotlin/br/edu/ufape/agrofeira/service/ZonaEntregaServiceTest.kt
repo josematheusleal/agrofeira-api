@@ -28,7 +28,7 @@ class ZonaEntregaServiceTest {
 
     @BeforeEach
     fun setUp() {
-        zona = ZonaEntrega(id = id, bairro = "Centro", taxa = BigDecimal("5.00"))
+        zona = ZonaEntrega(id = id, nome = "ZONA_PROXIMA", taxa = BigDecimal("7.00"))
     }
 
     @Test
@@ -38,7 +38,7 @@ class ZonaEntregaServiceTest {
         val result = service.listar()
 
         assertEquals(1, result.size)
-        assertEquals("Centro", result[0].bairro)
+        assertEquals("ZONA_PROXIMA", result[0].nome)
     }
 
     @Test
@@ -61,25 +61,25 @@ class ZonaEntregaServiceTest {
 
     @Test
     fun `criar deve salvar nova zona`() {
-        val request = ZonaEntregaRequest("Cohab", "Norte", BigDecimal("7.00"))
+        val request = ZonaEntregaRequest("ZONA_AFASTADA", BigDecimal("10.00"))
         `when`(repository.save(any(ZonaEntrega::class.java))).thenAnswer { it.arguments[0] }
 
         val result = service.criar(request)
 
         assertNotNull(result)
-        assertEquals("Cohab", result.bairro)
-        assertEquals(BigDecimal("7.00"), result.taxa)
+        assertEquals("ZONA_AFASTADA", result.nome)
+        assertEquals(BigDecimal("10.00"), result.taxa)
     }
 
     @Test
     fun `atualizar deve salvar alteracoes`() {
-        val request = ZonaEntregaRequest("Centro Alterado", "Sul", BigDecimal("10.00"))
+        val request = ZonaEntregaRequest("ZONA_ALTERADA", BigDecimal("10.00"))
         `when`(repository.findById(id)).thenReturn(Optional.of(zona))
         `when`(repository.save(any(ZonaEntrega::class.java))).thenAnswer { it.arguments[0] }
 
         val result = service.atualizar(id, request)
 
-        assertEquals("Centro Alterado", result.bairro)
+        assertEquals("ZONA_ALTERADA", result.nome)
         assertEquals(BigDecimal("10.00"), result.taxa)
     }
 

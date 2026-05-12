@@ -27,6 +27,9 @@ class ComercianteServiceTest {
     @Mock
     private lateinit var usuarioService: UsuarioService
 
+    @Mock
+    private lateinit var enderecoService: EnderecoService
+
     @InjectMocks
     private lateinit var comercianteService: ComercianteService
 
@@ -58,16 +61,37 @@ class ComercianteServiceTest {
     }
 
     @Test
-    fun `listar deve retornar uma pagina de comerciantes`() {
+    fun `listar deve retornar uma pagina de comerciantes quando nome for nulo`() {
         val pageable = PageRequest.of(0, 10)
         val page = PageImpl(listOf(comerciante))
 
         `when`(usuarioRepository.findByPerfilNome("COMERCIANTE", pageable)).thenReturn(page)
 
-        val result = comercianteService.listar(pageable)
+        val result = comercianteService.listar(null, pageable)
 
         assertEquals(1, result.totalElements)
         assertEquals("Banca do João", result.content[0].nome)
+        verify(usuarioRepository).findByPerfilNome("COMERCIANTE", pageable)
+    }
+
+    @Test
+    fun `listar deve retornar uma pagina de comerciantes filtrada por nome`() {
+        val pageable = PageRequest.of(0, 10)
+        val page = PageImpl(listOf(comerciante))
+
+        `when`(
+            usuarioRepository.findByPerfilNomeAndNomeContainingIgnoreCase(
+                "COMERCIANTE",
+                "Banca",
+                pageable,
+            ),
+        ).thenReturn(page)
+
+        val result = comercianteService.listar("Banca", pageable)
+
+        assertEquals(1, result.totalElements)
+        assertEquals("Banca do João", result.content[0].nome)
+        verify(usuarioRepository).findByPerfilNomeAndNomeContainingIgnoreCase("COMERCIANTE", "Banca", pageable)
     }
 
     @Test
@@ -93,14 +117,36 @@ class ComercianteServiceTest {
     }
 
     @Test
-    fun `criar deve chamar o usuarioService cadastrar repassando COMERCIANTE`() {
-        val request = ComercianteRequest("Banca Nova", "nova@banca.com", "8799999999", "senha123", "desc")
+    fun `criar deve chamar o usuarioService cadastrar e salvar endereco se fornecido`() {
+        val enderecoRequest =
+            br.edu.ufape.agrofeira.dto.request.EnderecoRequest(
+                rua = "Rua",
+                numero = "1",
+                complemento = "Comp",
+                cep = "55290000",
+                zonaEntregaId = UUID.randomUUID(),
+            )
+        val request =
+            ComercianteRequest("Banca Nova", "nova@banca.com", "8799999999", "senha123", "desc", enderecoRequest)
         `when`(usuarioService.cadastrar(anyUsuario(), eqSet(setOf("COMERCIANTE")))).thenReturn(comerciante)
 
         val result = comercianteService.criar(request)
 
         assertNotNull(result)
         verify(usuarioService).cadastrar(anyUsuario(), eqSet(setOf("COMERCIANTE")))
+        verify(enderecoService).salvarEndereco(comerciante.id, enderecoRequest)
+    }
+
+    @Test
+    fun `criar deve chamar apenas usuarioService cadastrar se endereco for nulo`() {
+        val request = ComercianteRequest("Banca Nova", "nova@banca.com", "8799999999", "senha123", "desc", null)
+        `when`(usuarioService.cadastrar(anyUsuario(), eqSet(setOf("COMERCIANTE")))).thenReturn(comerciante)
+
+        val result = comercianteService.criar(request)
+
+        assertNotNull(result)
+        verify(usuarioService).cadastrar(anyUsuario(), eqSet(setOf("COMERCIANTE")))
+        verifyNoInteractions(enderecoService)
     }
 
     @Test
